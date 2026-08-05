@@ -1,6 +1,6 @@
 # ADR-0017: Recorded fixtures, never live cloud in CI
 
-Status: accepted
+Status: superseded in part by ADR-0027
 Date: 2026-08-05
 
 ## Context

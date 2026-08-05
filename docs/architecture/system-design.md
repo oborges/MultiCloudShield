@@ -74,7 +74,7 @@ src/multicloudshield/
     aws/ azure/ gcp/ ibm/ demo/
   engine/        Orchestrator, concurrency, retry, reconciliation → core, facts, policy, providers
   persistence/   SQLAlchemy models, migrations, repositories    → core
-  queue/         JobQueue interface + procrastinate adapter     → core
+  worker/        leased PostgreSQL queue + process entrypoint   → persistence, engine
   api/           Routers, schemas, auth, error model            → core, persistence, engine, queue
   worker/        Job consumer, scan execution                   → everything
   cli/           Typer commands, remote + local modes           → core, engine, api client
@@ -109,9 +109,9 @@ All versions verified 2026-08-05. Rationale and rejected alternatives are in the
 | Database | PostgreSQL **18** (required) | [0005](decisions/0005-database-and-orm.md) |
 | ORM / driver | SQLAlchemy 2.0.x async, `psycopg` 3.3.x | [0005](decisions/0005-database-and-orm.md) |
 | Migrations | Alembic 1.19.x | [0005](decisions/0005-database-and-orm.md) |
-| Job queue | `procrastinate` 3.9.x behind a `JobQueue` interface | [0006](decisions/0006-background-execution.md) |
+| Job queue | Internal PostgreSQL leases + `SKIP LOCKED` | [0026](decisions/0026-internal-postgresql-job-queue.md) |
 | CLI | Typer 0.27.x | [0025](decisions/0025-stateless-local-scan-mode.md) |
-| HTTP client | **`httpx2` 2.9.x** (stewardship moved from `httpx`) | [0017](decisions/0017-testing-strategy.md) |
+| HTTP test client | `httpx` through FastAPI/Starlette test tooling | [0027](decisions/0027-supported-frontend-and-test-tooling.md) |
 | Logging | structlog 26.x, JSON, redacting | [0016](decisions/0016-observability.md) |
 | Passwords | `argon2-cffi`, m=19456 t=2 p=1 | [0011](decisions/0011-authentication-model.md) |
 
@@ -123,8 +123,7 @@ quirks, and gaps: [provider-adapters.md](provider-adapters.md) §4.
 
 ### Frontend
 
-React 19.2 · TypeScript **6.0** (7.0 is a tracked follow-up) · Vite 8.2 · TanStack Query 5 ·
-React Router 8 · Tailwind 4.3 · shadcn/ui (base pinned) · Recharts 3.10 ·
+React 19 · TypeScript 5.9 · Vite 7 · TanStack Query 5 · React Router 8.3 · design-token CSS ·
 `openapi-typescript` + `openapi-fetch` + `openapi-react-query` · Node 24 LTS.
 [ADR-0014](decisions/0014-frontend-stack.md).
 
@@ -237,7 +236,7 @@ Present limits and their intended path, so nobody mistakes a deliberate limit fo
 | --- | --- | --- |
 | Workers | One | The queue already supports multiple consumers — run more containers |
 | Tenants | One organization; application-layer scoping | PostgreSQL RLS, then real multi-tenancy |
-| Scan trigger | Manual only | Scheduled scans (procrastinate has periodic tasks built in) |
+| Scan trigger | Manual only | Scheduled scans after queue-operating experience |
 | Scan scope | One account/subscription/project per connection | Organization/folder/management-group hierarchies |
 | Bulk inventory | Per-service SDK calls | Resource Graph / Cloud Asset Inventory as collectors behind the same contract |
 | Deployment | Docker Compose | Kubernetes if demand appears |

@@ -1,0 +1,87 @@
+name: multicloudshield
+
+x-hardened: &hardened
+  image: multicloudshield:0.1.0
+  build:
+    context: .
+  user: "10001:10001"
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+  networks:
+    - internal
+
+x-app-env: &app-env
+  MCS_ENV: development
+  MCS_DATABASE__URL: postgresql+psycopg://mcs_app:${MCS_DB_PASSWORD:?set MCS_DB_PASSWORD}@db:5432/multicloudshield
+  MCS_SECRET_KEY: ${MCS_SECRET_KEY:?set MCS_SECRET_KEY}
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: multicloudshield
+      POSTGRES_USER: mcs_app
+      POSTGRES_PASSWORD: ${MCS_DB_PASSWORD:?set MCS_DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcs_app -d multicloudshield"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    networks:
+      - internal
+
+  migrate:
+    <<: *hardened
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      <<: *app-env
+      MCS_PROCESS_ROLE: cli
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    <<: *hardened
+    command: ["mcs-api"]
+    environment:
+      <<: *app-env
+      MCS_PROCESS_ROLE: api
+      MCS_API__PUBLIC_URL: http://localhost:8080
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+  worker:
+    <<: *hardened
+    command: ["mcs-worker"]
+    environment:
+      <<: *app-env
+      MCS_PROCESS_ROLE: worker
+      AZURE_TOKEN_CREDENTIALS: prod
+      # Provider-native credential variables belong here only. See docs/guides/.
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres-data:
+
+networks:
+  internal:

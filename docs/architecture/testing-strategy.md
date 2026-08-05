@@ -17,7 +17,7 @@ release blockers because they guard failures that would make the tool actively h
 ```mermaid
 flowchart TB
     E2E["E2E · Playwright · ~5 tests<br/>demo connection → scan → dashboard"]
-    API["API + property · httpx2 ASGITransport + Schemathesis<br/>auth, RBAC, errors, pagination, fuzzed inputs"]
+    API["API + property · ASGI test client<br/>auth, RBAC, errors, pagination, fuzzed inputs"]
     INT["Integration · PostgreSQL container<br/>repositories, migrations, reconciliation, crash recovery"]
     ADP["Adapter · conformance suite + moto/cassettes<br/>contract invariants, error mapping, real payload shapes"]
     POL["Policy · fixtures + determinism golden file<br/>every policy: pass / fail / insufficient_data"]
@@ -159,7 +159,7 @@ Against a real PostgreSQL 18 container (never SQLite — the dialects differ in 
 
 ## 7. API tests
 
-`httpx2.AsyncClient` with `ASGITransport` (not Starlette's `TestClient`, which runs its own event loop
+`httpx.AsyncClient` with `ASGITransport` (not Starlette's `TestClient`, which runs its own event loop
 and conflicts with async fixtures; `base_url` must be set for relative URLs).
 
 - **Route audit:** enumerate routes from the app and assert each has an authentication dependency and a
