@@ -14,6 +14,11 @@ artifacts remain outstanding.
 - PostgreSQL persistence, REST API, worker, CLI, React dashboard, JSON/CSV exports, and containers.
 - Session and API-token authentication, organization-scoped authorization, and finding lifecycle.
 
+### Changed
+
+- Upgrade the frontend build/test toolchain to Vite 8.2, plugin-react 6.0.5, and Vitest 4.1 while
+  retaining TypeScript 5.9 until the ESLint toolchain supports TypeScript 7.
+
 ### Fixed
 
 - Mount PostgreSQL 18 data at `/var/lib/postgresql` so its versioned cluster layout initializes and
