@@ -379,7 +379,6 @@ class Repository:
                 )
             )
         if result.status in {ScanStatus.COMPLETED, ScanStatus.PARTIALLY_COMPLETED}:
-            assets_by_id = {asset.id: asset for asset in result.assets}
             evidence_by_id = {evidence.id: evidence for evidence in result.evidence}
             succeeded_targets = {
                 (target.scope_id, target.collector_id)
@@ -389,10 +388,13 @@ class Repository:
             for evaluation in result.evaluations:
                 if evaluation.result is not EvaluationResult.PASS:
                     continue
-                transient_asset = assets_by_id[evaluation.asset_id]
                 provenance = evidence_by_id[evaluation.evidence_id].provenance
-                collector_id = str(provenance.get("collector_id", ""))
-                if (transient_asset.scope_id, collector_id) not in succeeded_targets:
+                target = provenance.get("scan_target", {})
+                if (
+                    not isinstance(target, dict)
+                    or (str(target.get("scope_id", "")), str(target.get("collector_id", "")))
+                    not in succeeded_targets
+                ):
                     continue
                 await self.session.execute(
                     update(FindingRow)

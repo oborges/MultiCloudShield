@@ -141,7 +141,12 @@ async def run_scan(
                         connection_id=connection.id,
                     )
                     normalized.append(asset)
-                    assets_and_provenance.append((asset.asset_urn, observation.provenance))
+                    provenance = dict(observation.provenance)
+                    provenance["scan_target"] = {
+                        "scope_id": scope.id,
+                        "collector_id": collector.id,
+                    }
+                    assets_and_provenance.append((asset.asset_urn, provenance))
                 except ValueError as exc:
                     errors.append(
                         ScanError(
@@ -230,8 +235,12 @@ async def run_scan(
     }
     for asset in result.assets:
         provenance = provenance_by_urn.get(asset.asset_urn, {})
-        collector_id = str(provenance.get("collector_id", ""))
-        if (asset.scope_id, collector_id) not in succeeded_targets:
+        target = provenance.get("scan_target", {})
+        if (
+            not isinstance(target, dict)
+            or (str(target.get("scope_id", "")), str(target.get("collector_id", "")))
+            not in succeeded_targets
+        ):
             continue
         for policy in policy_bundle.policies:
             try:
