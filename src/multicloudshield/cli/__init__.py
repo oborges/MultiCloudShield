@@ -1,0 +1,1 @@
+"""MultiCloudShield command-line interface."""

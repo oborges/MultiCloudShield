@@ -1,0 +1,1 @@
+"""Dedicated scan worker process."""
