@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM node:24-slim AS web-build
+FROM node:25-slim AS web-build
 WORKDIR /build/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci --ignore-scripts
