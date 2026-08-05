@@ -43,7 +43,7 @@ flowchart TB
     CLI -.->|"--local: in-process, no DB"| Core
 
     API -->|"enqueue scan_job"| DB
-    DB -->|"LISTEN/NOTIFY + FOR UPDATE SKIP LOCKED"| WRK
+    DB -->|"bounded polling + FOR UPDATE SKIP LOCKED"| WRK
     WRK --> ORCH
     ORCH --> ADP
     ADP -->|"read-only SDK calls"| AWS & AZ & GCP & IBM

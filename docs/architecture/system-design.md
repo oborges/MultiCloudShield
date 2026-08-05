@@ -42,7 +42,7 @@ flowchart TB
     UI & CLI --> RP --> API
     CLI -.->|"--local: engine in-process"| WORKER
     API -->|"enqueue · read"| DB
-    DB -->|"SKIP LOCKED + LISTEN/NOTIFY"| JQ
+    DB -->|"SKIP LOCKED + bounded polling"| JQ
     JQ --> O --> AD --> CLOUD
     O --> PE
     O -->|"write"| DB

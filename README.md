@@ -10,7 +10,9 @@ credentials, and all provider calls are constrained to reviewed read-operation a
 
 ## Quickstart
 
-Prerequisites: Docker Engine and Compose v2.
+Prerequisites: Docker Engine with Compose v2, or Podman 5 with a Compose provider. Docker Compose is
+the simplest path; the Podman-specific workflow and compatibility note are in the
+[demo guide](docs/demo-workflow.md#podman).
 
 ```bash
 cp .env.example .env
@@ -81,6 +83,7 @@ Interactive API documentation is served at <http://localhost:8080/api/v1/docs>. 
 
 ## Documentation
 
+- [Current implementation and verification status](docs/project-status.md)
 - [Demo workflow](docs/demo-workflow.md)
 - [Development and testing](docs/development.md)
 - [REST API](docs/api.md) and [CLI](docs/cli.md)

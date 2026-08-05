@@ -63,7 +63,7 @@ Not sized, because the shape depends on the answer.
 | B-26 | **CIS SecureSuite Product Vendor Membership?** | The only clean path to shipping real CIS Benchmark content. Paid, and it would change the compliance feature substantially. Requires counsel and a funding answer |
 | B-27 | **Does the CLI need a static binary?** | Would make the CI/CD story much better, and is awkward with four cloud SDKs' data files and certificate bundles. Decide on user feedback, not speculation |
 | B-28 | **Third-party policy bundles: sandbox or trust?** | Currently trust, opt-in, documented. A subprocess or WASM sandbox is the alternative. The `Collector` and policy contracts are narrow enough to serialize across a process boundary, so this stays open |
-| B-29 | **Managed PostgreSQL support** | Should work, but `LISTEN/NOTIFY` interaction with connection poolers (PgBouncer in transaction mode in particular) is untested. Needs verification before it is claimed |
+| B-29 | **Managed PostgreSQL support** | Should work, but queue polling, transaction behavior, and connection-pooler compatibility are untested. Needs verification before it is claimed |
 
 ---
 

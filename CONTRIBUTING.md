@@ -35,13 +35,13 @@ git clone https://github.com/oborges/MultiCloudShield.git
 cd MultiCloudShield
 uv sync --extra dev          # installs Python and development dependencies
 cd web && npm ci && cd ..
-docker compose up -d db
+docker compose up -d db  # or: podman compose up -d db
 uv run alembic upgrade head
 uv run pytest --import-mode=importlib
 ```
 
-Requires [uv](https://docs.astral.sh/uv/) and Docker. uv manages the Python version, so you do not need
-to install one.
+Requires [uv](https://docs.astral.sh/uv/) and either Docker Compose or Podman with a Compose provider.
+uv manages the Python version, so you do not need to install one.
 
 ---
 
