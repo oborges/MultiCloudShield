@@ -1,6 +1,6 @@
 # Provider Coverage Matrix
 
-Status: planned for v0.1.0
+Status: implemented for v0.1.0; live-cloud validation pending
 Last updated: 2026-08-05
 
 What each provider adapter collects, which policies apply, and — equally important — what is **not**

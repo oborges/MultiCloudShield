@@ -10,15 +10,8 @@ copy, and commit messages.
 
 ## Current state
 
-The repository is in **planning and architecture**. There is no application code yet.
-
-The most useful contributions right now are reviews of the architecture — particularly if you have
-operated a CSPM, run large multi-cloud estates, or have hit one of the provider quirks documented in
-[provider-adapters.md](docs/architecture/provider-adapters.md).
-
-Once implementation starts, [implementation-plan.md](docs/planning/implementation-plan.md) is the
-ordered work list. Phases 8–11 (the four provider adapters) and Phase 12 (policies) are genuinely
-parallel and are the natural place to start.
+Version 0.1.0 is implemented. Contributions should include behavior-focused tests and keep the demo,
+API, CLI, dashboard, and provider contracts coherent.
 
 ## Where to start
 
@@ -40,15 +33,15 @@ parallel and are the natural place to start.
 ```bash
 git clone https://github.com/oborges/MultiCloudShield.git
 cd MultiCloudShield
-uv sync                      # installs Python and dependencies
-uv run pre-commit install
-docker compose up -d db
+uv sync --extra dev          # installs Python and development dependencies
+cd web && npm ci && cd ..
+docker compose up -d db  # or: podman compose up -d db
 uv run alembic upgrade head
-uv run pytest
+uv run pytest --import-mode=importlib
 ```
 
-Requires [uv](https://docs.astral.sh/uv/) and Docker. uv manages the Python version, so you do not need
-to install one.
+Requires [uv](https://docs.astral.sh/uv/) and either Docker Compose or Podman with a Compose provider.
+uv manages the Python version, so you do not need to install one.
 
 ---
 
@@ -126,10 +119,10 @@ where the permission cost of a check becomes visible, which is exactly where it 
 Before opening:
 
 ```bash
-uv run ruff format . && uv run ruff check --fix .
-uv run mypy src
+uv run ruff format --check . && uv run ruff check .
+uv run mypy src/multicloudshield
 uv run lint-imports
-uv run pytest
+uv run pytest --import-mode=importlib
 uv run mcs scan --local --provider demo     # for engine or adapter changes
 ```
 

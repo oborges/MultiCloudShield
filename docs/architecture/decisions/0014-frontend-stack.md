@@ -1,6 +1,6 @@
 # ADR-0014: React, TypeScript, Vite, and a generated API client
 
-Status: accepted
+Status: superseded by ADR-0027
 Date: 2026-08-05
 
 ## Context

@@ -690,9 +690,9 @@ What we persist, and why:
 | Principal identifiers (user ARNs, emails, service accounts) | Yes, pseudonymizable | Needed for IAM findings; `MCS_PSEUDONYMIZE_PRINCIPALS` hashes them in exports |
 | IP addresses in firewall rules | Yes | They *are* the finding |
 
-Retention: `standard` evidence follows the configured retention window (default 365 days);
-`minimized` evidence for resolved findings is truncated to `content_digest` + reason code after 90
-days. Both are configurable and enforced by a maintenance job, not by manual cleanup.
+The schema reserves `retention_class` for future lifecycle enforcement. Automated evidence
+minimization and deletion are not implemented in v0.1.0; operators must manage database retention at
+the deployment level until the maintenance job lands.
 
 ---
 

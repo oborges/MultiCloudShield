@@ -1,6 +1,6 @@
 # Implementation Plan — v0.1.0
 
-Status: accepted
+Status: implemented; release validation pending
 Last updated: 2026-08-05
 
 Ordered phases, each ending in a **working, demonstrable repository state**. A phase that leaves the

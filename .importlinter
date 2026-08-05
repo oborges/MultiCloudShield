@@ -1,0 +1,19 @@
+[importlinter]
+root_package = multicloudshield
+
+[importlinter:contract:api-does-not-import-providers]
+name = API does not import provider implementations
+type = forbidden
+source_modules = multicloudshield.api
+forbidden_modules = multicloudshield.providers.aws
+                    multicloudshield.providers.azure
+                    multicloudshield.providers.gcp
+                    multicloudshield.providers.ibm
+
+[importlinter:contract:policy-is-pure]
+name = Policy does not import providers or persistence
+type = forbidden
+source_modules = multicloudshield.policy
+forbidden_modules = multicloudshield.providers
+                    multicloudshield.persistence
+

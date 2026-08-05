@@ -14,7 +14,7 @@ How MultiCloudShield is packaged, configured, run, and upgraded. The packaging d
 flowchart TB
     U["Users · CI runners"] -->|HTTPS| RP
 
-    subgraph HOST["Single host — docker compose"]
+    subgraph HOST["Single host — Compose"]
         RP["reverse proxy<br/>TLS termination"]
         API["mcs-api<br/>NO cloud credentials"]
         WRK["mcs-worker<br/>cloud credentials HERE"]
@@ -43,7 +43,8 @@ becomes an immediate, loud failure rather than a silent expansion of the attack 
 
 | Requirement | Version | Note |
 | --- | --- | --- |
-| Docker Engine + Compose v2 | Current | The only supported runtime |
+| Docker Engine + Compose v2 | Current | Primary runtime |
+| Podman + Compose provider | Podman 5.8.2, podman-compose 1.6.0 verified | See the [demo workflow](../demo-workflow.md#podman) for the current one-shot migration workaround |
 | PostgreSQL | **18** | Provided by Compose. `uuidv7()` is a hard requirement ([ADR-0005](decisions/0005-database-and-orm.md)) |
 | Host resources | 2 vCPU, 4 GB RAM, 20 GB disk | Sufficient for demo and small estates |
 | Cloud credentials | Optional | **Not needed for demo mode** |
@@ -55,7 +56,7 @@ the environment is the whole dependency ([ADR-0025](decisions/0025-stateless-loc
 
 ## 3. Images
 
-One image, two entrypoint commands, built multi-stage:
+One image, three application roles (`mcs-api`, `mcs-worker`, and `alembic`), built multi-stage:
 
 ```
 stage 1  node:24-slim     build the SPA
@@ -72,7 +73,6 @@ read_only: true
 tmpfs: [/tmp]
 cap_drop: [ALL]              # a read-only scanner needs no capabilities
 security_opt: ["no-new-privileges:true"]
-mem_limit: 2g
 ```
 
 ---
@@ -183,10 +183,13 @@ git clone https://github.com/oborges/MultiCloudShield.git
 cd MultiCloudShield
 cp .env.example .env            # generate MCS_SECRET_KEY as instructed
 docker compose up -d
-docker compose run --rm mcs-api mcs bootstrap --email you@example.com
-docker compose run --rm mcs-api mcs demo seed
-# open https://localhost — demo findings for four providers
+docker compose run --rm api mcs bootstrap --email you@example.com
+docker compose run --rm api mcs demo seed
+# open http://localhost:8080 — demo findings for four providers
 ```
+
+The equivalent verified Podman sequence is documented in the
+[deterministic demo workflow](../demo-workflow.md#podman).
 
 ### A real cloud account
 
@@ -223,8 +226,8 @@ Exit codes: `0` clean · `2` findings at or above `--fail-on` · `3` scan failed
 | `/healthz` | Liveness. **No database access** — a database outage must not cause a restart loop |
 | `/readyz` | Readiness: database connectivity, migration state, queue reachability |
 
-The worker exposes a localhost-bound health endpoint and heartbeats into the job table, which is how
-stalled jobs are detected and requeued.
+The worker leases and heartbeats jobs in PostgreSQL. Operators monitor its container state and
+structured stdout logs; there is no separate worker HTTP health endpoint in v0.1.0.
 
 ### Backup
 
@@ -236,18 +239,19 @@ is a standard `pg_restore`; the schema version must match the application versio
 
 ```bash
 docker compose pull
-docker compose run --rm mcs-migrate     # explicit, separate DDL role
+docker compose run --rm migrate
 docker compose up -d
 ```
 
-Migrations are **never** run automatically at API startup: that races on scale-up and would require DDL
-rights in the application role. `/readyz` returns non-200 while the schema is behind, so a forgotten
-migration is visible rather than mysterious.
+Migrations are **never** run inside API startup. Compose runs the separate one-shot `migrate` service
+before API and worker. The local topology currently uses one PostgreSQL role for DDL and DML;
+production operators should separate them. `/readyz` returns non-200 while the schema is behind, so
+a forgotten migration is visible rather than mysterious.
 
 ### Retention
 
-Evidence retention defaults to 365 days; resolved findings' evidence is minimized to a digest after 90
-days. Both are configurable and enforced by a maintenance job, not manual cleanup.
+Automated evidence minimization and retention cleanup are not implemented in v0.1.0. Until that
+maintenance job lands, operators must include database growth in capacity and backup planning.
 
 ---
 
@@ -263,5 +267,5 @@ Stated plainly so nobody plans around an assumption:
 | Multiple organizations in one deployment | Single-organization; separate deployments for mutually distrusting parties ([security-boundaries.md](security-boundaries.md) §4) |
 | Horizontal API scaling behind a load balancer | Should work (stateless API, database-backed sessions) but is untested in v0.1.0 |
 | Multiple workers | Supported by the queue; the default deployment runs one and more is untested |
-| Managed PostgreSQL | Should work; connection pooling interactions with `LISTEN/NOTIFY` are untested |
+| Managed PostgreSQL | Should work; connection pooling and queue polling behavior are untested |
 | Scheduled scans | Manual trigger only in v0.1.0 |

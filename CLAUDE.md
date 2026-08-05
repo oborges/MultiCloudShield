@@ -12,9 +12,8 @@ MultiCloudShield is an open-source, **defensive, read-only** Cloud Security Post
 for AWS, Azure, GCP, and IBM Cloud. It discovers cloud resources, normalizes them into a shared asset
 model, evaluates security policies, and reports findings with evidence.
 
-**Current state (2026-08-05): planning and architecture only.** The repository contains documentation
-and no application code. Everything in `docs/` describes what will be built. Do not describe unbuilt
-behaviour in the present tense anywhere outside `docs/`.
+**Current state (2026-08-05): v0.1.0 implemented.** Keep documentation synchronized with observed
+behavior and distinguish mocked provider validation from live-cloud verification.
 
 ## Read before implementing
 
@@ -106,10 +105,9 @@ type crosses into the core domain.**
 
 ### Stack
 
-Python 3.12+ (CI 3.13) · FastAPI · Pydantic v2 · SQLAlchemy 2 async + `psycopg` 3 · Alembic ·
-**PostgreSQL 18** (required — `uuidv7()`) · `procrastinate` job queue · Typer · **`httpx2`** (not
-`httpx`) · structlog · React 19 + TypeScript 6 + Vite + TanStack Query + Tailwind 4 · `uv` · Ruff ·
-mypy strict · pytest.
+Python 3.12+ (container 3.13) · FastAPI · Pydantic v2 · SQLAlchemy 2 async + `psycopg` 3 · Alembic ·
+**PostgreSQL 18** (required — `uuidv7()`) · leased PostgreSQL job queue · Typer · structlog · React
+19 + TypeScript + Vite + TanStack Query · `uv` · Ruff · mypy strict · pytest.
 
 ---
 
@@ -120,7 +118,7 @@ Verified 2026-08-05. Each of these has already cost someone time.
 | Trap | Reality |
 | --- | --- |
 | `@app.on_event`, `@app.middleware`, `@app.route` | **Removed in Starlette 1.0.** Use `lifespan` and explicit `routes=`/`middleware=` lists. Most FastAPI examples online are wrong on this |
-| `import httpx` | Stewardship moved to **`httpx2`**. Starlette's TestClient docs deprecate plain `httpx`. Consequence: `responses` will not intercept it — use `vcrpy` or RESPX |
+| API test event loops | Prefer async clients for async database tests; do not mix event loops around an async SQLAlchemy session |
 | `router.routes` as a flat list | FastAPI 0.137.0 made it a **tree**. The route-audit test must walk it |
 | Lazy relationship loading | **Raises under async SQLAlchemy.** Use `selectinload`/`joinedload`; `lazy="raise"` is set globally |
 | `Config(retries={"max_attempts": N})` in boto3 | `max_attempts` on `Config` **excludes** the initial request; the config-file form **includes** it. Always use `total_max_attempts` |

@@ -1,6 +1,6 @@
 # ADR-0006: PostgreSQL-backed job queue and a dedicated worker
 
-Status: accepted
+Status: superseded by ADR-0026
 Date: 2026-08-05
 
 ## Context
