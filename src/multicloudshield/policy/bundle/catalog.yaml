@@ -1,0 +1,303 @@
+version: 2026.08.1
+policies:
+  - &base_storage_public_read
+    id: MCS-STOR-001
+    version: 1.0.0
+    title: Object storage allows public read access
+    description: Anonymous users can read data from this storage resource.
+    rationale: Unauthenticated access can expose sensitive or regulated information.
+    severity: critical
+    severity_rubric_cell: data_exposure/exploitable_without_credentials
+    provider_applicability: [aws, azure, gcp, ibm]
+    resource_type_applicability: [object_storage.bucket]
+    requires_facts: [public_read_access]
+    origin: mcs_best_practice
+    predicate: yes_is_fail
+    reason_code: PUBLIC_READ_ALLOWED
+    references: [{title: Provider storage security guidance, url: "https://multicloudshield.invalid/references/storage", accessed_on: "2026-08-05"}]
+    remediation: &storage_remediation
+      summary: Restrict storage access to explicitly authorized identities.
+      steps: [Confirm the intended audience, remove public grants using the provider console, run another scan.]
+      required_permissions: {}
+      verification: Re-run the scan and confirm the finding resolves.
+      change_risk: medium
+      change_risk_note: Restricting access can disrupt intentionally public content.
+    compliance_mappings: &access_mapping
+      [{framework: NIST_800_53, framework_version: Rev.5, control_id: AC-3, relationship: partially_supports, note: This check contributes evidence that access to stored data is constrained.}]
+  - <<: *base_storage_public_read
+    id: MCS-STOR-002
+    title: Object storage allows public write access
+    description: Anonymous users can modify data in this storage resource.
+    rationale: Unauthenticated writes can corrupt content and introduce malicious payloads.
+    requires_facts: [public_write_access]
+    reason_code: PUBLIC_WRITE_ALLOWED
+  - <<: *base_storage_public_read
+    id: MCS-STOR-003
+    title: Object storage not protected by a customer-managed key
+    description: The storage resource does not use a customer-controlled encryption key.
+    rationale: Customer-managed keys provide independent rotation and revocation control.
+    severity: low
+    severity_rubric_cell: hardening_gap/requires_existing_access
+    requires_facts: [encryption_at_rest]
+    predicate: not_customer_managed
+    reason_code: CUSTOMER_KEY_NOT_USED
+  - <<: *base_storage_public_read
+    id: MCS-STOR-004
+    title: Object storage access logging not enabled
+    description: Storage access activity is not recorded for investigation.
+    rationale: Access records support detection and incident reconstruction.
+    severity: low
+    severity_rubric_cell: loss_of_detection/weakens_defence_only
+    requires_facts: [access_logging_enabled]
+    predicate: no_is_fail
+    reason_code: ACCESS_LOGGING_DISABLED
+  - <<: *base_storage_public_read
+    id: MCS-STOR-005
+    title: Object storage does not require encrypted transport
+    description: Requests can reach this storage resource without a transport encryption requirement.
+    rationale: Enforcing encrypted transport prevents accidental plaintext data transfer.
+    severity: medium
+    severity_rubric_cell: data_exposure/weakens_defence_only
+    requires_facts: [tls_required]
+    predicate: no_is_fail
+    reason_code: TLS_NOT_REQUIRED
+  - &base_firewall
+    id: MCS-NET-001
+    version: 1.0.0
+    title: Unrestricted inbound access to administrative ports
+    description: An internet source can reach an administrative service.
+    rationale: Exposed administrative services are common credential-attack targets.
+    severity: high
+    severity_rubric_cell: privilege_escalation/exploitable_without_credentials
+    provider_applicability: [aws, azure, gcp, ibm]
+    resource_type_applicability: [network.firewall_ruleset, network.firewall_rule]
+    requires_facts: [unrestricted_admin_ingress]
+    origin: mcs_best_practice
+    predicate: yes_is_fail
+    reason_code: UNRESTRICTED_ADMIN_INGRESS
+    references: [{title: Provider network security guidance, url: "https://multicloudshield.invalid/references/network", accessed_on: "2026-08-05"}]
+    remediation: &network_remediation
+      summary: Limit inbound traffic to approved source networks and required ports.
+      steps: [Confirm service requirements, narrow the source range and port set, run another scan.]
+      required_permissions: {}
+      verification: Re-run the scan and confirm the exposed rule no longer appears.
+      change_risk: high
+      change_risk_note: Firewall changes can interrupt legitimate management traffic.
+    compliance_mappings: *access_mapping
+  - <<: *base_firewall
+    id: MCS-NET-002
+    title: Unrestricted inbound access to all ports
+    description: An internet source can reach every port allowed by this ruleset.
+    rationale: Broad ingress exposes services that were not intended to be reachable.
+    severity: critical
+    severity_rubric_cell: data_exposure/exploitable_without_credentials
+    requires_facts: [unrestricted_all_ports]
+    reason_code: UNRESTRICTED_ALL_PORTS
+  - <<: *base_firewall
+    id: MCS-NET-003
+    title: Unrestricted inbound access to data-store ports
+    description: An internet source can reach a common data-store service port.
+    rationale: Publicly reachable data stores have a direct data-exposure path.
+    requires_facts: [unrestricted_datastore_ingress]
+    reason_code: UNRESTRICTED_DATASTORE_INGRESS
+  - &base_identity
+    id: MCS-IAM-001
+    version: 1.0.0
+    title: Interactive principal without multi-factor authentication
+    description: An interactive identity can authenticate without a second factor.
+    rationale: A stolen password is substantially more useful when no second factor is required.
+    severity: high
+    severity_rubric_cell: privilege_escalation/requires_existing_access
+    provider_applicability: [aws, azure, gcp, ibm]
+    resource_type_applicability: [identity.principal]
+    requires_facts: [mfa_enabled]
+    origin: mcs_best_practice
+    predicate: no_is_fail
+    reason_code: MFA_NOT_ENABLED
+    references: [{title: Provider identity security guidance, url: "https://multicloudshield.invalid/references/identity", accessed_on: "2026-08-05"}]
+    remediation: &identity_remediation
+      summary: Require strong authentication for interactive identities.
+      steps: [Confirm the identity is interactive, enroll an approved second factor, run another scan.]
+      required_permissions: {}
+      verification: Re-run the scan and confirm multi-factor authentication is reported.
+      change_risk: low
+      change_risk_note: Enrollment should be coordinated to avoid locking out operators.
+    compliance_mappings: *access_mapping
+  - <<: *base_identity
+    id: MCS-IAM-002
+    title: Long-lived credential older than the configured threshold
+    description: A persistent user credential has exceeded the ninety-day baseline.
+    rationale: Older credentials have a longer exposure window and are more likely to be forgotten.
+    severity: medium
+    severity_rubric_cell: privilege_escalation/requires_existing_access
+    provider_applicability: [aws, ibm]
+    requires_facts: [credential_age_days]
+    predicate: age_over_90
+    reason_code: CREDENTIAL_TOO_OLD
+  - &base_logging
+    id: MCS-LOG-001
+    version: 1.0.0
+    title: Audit logging not enabled for the account scope
+    description: Control-plane activity is not comprehensively recorded.
+    rationale: Missing audit records weakens detection and incident reconstruction.
+    severity: high
+    severity_rubric_cell: loss_of_detection/exploitable_without_credentials
+    provider_applicability: [aws, azure, gcp]
+    resource_type_applicability: [logging.audit_trail, logging.diagnostic_setting, account.scope]
+    requires_facts: [audit_logging_enabled]
+    origin: mcs_best_practice
+    predicate: no_is_fail
+    reason_code: AUDIT_LOGGING_DISABLED
+    references: [{title: Provider audit logging guidance, url: "https://multicloudshield.invalid/references/logging", accessed_on: "2026-08-05"}]
+    remediation: &logging_remediation
+      summary: Enable control-plane audit logging and protect its destination.
+      steps: [Choose a protected destination, enable the provider audit service, validate delivery, run another scan.]
+      required_permissions: {}
+      verification: Re-run the scan and confirm an active audit trail is observed.
+      change_risk: low
+      change_risk_note: Logging may add storage and ingestion cost.
+    compliance_mappings: [{framework: NIST_800_53, framework_version: Rev.5, control_id: AU-2, relationship: partially_supports, note: This check contributes evidence that auditable events are recorded.}]
+  - <<: *base_logging
+    id: MCS-LOG-002
+    title: Audit log destination is publicly accessible
+    description: The location receiving audit records permits public access.
+    rationale: Public access can expose security telemetry and its resource identifiers.
+    severity: critical
+    severity_rubric_cell: data_exposure/exploitable_without_credentials
+    provider_applicability: [aws, azure, gcp]
+    resource_type_applicability: [logging.audit_trail, logging.diagnostic_setting]
+    requires_facts: [destination_public]
+    predicate: yes_is_fail
+    reason_code: AUDIT_DESTINATION_PUBLIC
+  - &base_kms
+    id: MCS-KMS-001
+    version: 1.0.0
+    title: Key rotation not enabled
+    description: A key that supports automatic rotation is not configured to rotate.
+    rationale: Rotation limits the time a compromised key version remains useful.
+    severity: medium
+    severity_rubric_cell: hardening_gap/requires_existing_access
+    provider_applicability: [aws, azure, gcp]
+    resource_type_applicability: [kms.key, kms.vault]
+    requires_facts: [rotation_enabled]
+    origin: mcs_best_practice
+    predicate: no_is_fail
+    reason_code: KEY_ROTATION_DISABLED
+    references: [{title: Provider key management guidance, url: "https://multicloudshield.invalid/references/kms", accessed_on: "2026-08-05"}]
+    remediation: &kms_remediation
+      summary: Enable an approved key rotation schedule where the key type supports it.
+      steps: [Confirm application compatibility, enable rotation, run another scan.]
+      required_permissions: {}
+      verification: Re-run the scan and confirm rotation is enabled.
+      change_risk: medium
+      change_risk_note: Key changes should follow the workload key lifecycle procedure.
+    compliance_mappings: [{framework: NIST_800_53, framework_version: Rev.5, control_id: SC-12, relationship: partially_supports, note: This check contributes evidence that cryptographic keys have lifecycle controls.}]
+  - &base_aws_storage
+    <<: *base_storage_public_read
+    id: MCS-AWS-S3-001
+    title: Account-level Block Public Access not fully enabled
+    description: The AWS account does not enforce every S3 public access block control.
+    rationale: Account-level controls reduce the chance that a single bucket policy causes exposure.
+    severity: high
+    severity_rubric_cell: data_exposure/weakens_defence_only
+    provider_applicability: [aws]
+    resource_type_applicability: [account.scope]
+    requires_facts: [provider_specific.aws.block_public_access_all]
+    predicate: provider_no_is_fail
+    reason_code: ACCOUNT_PUBLIC_BLOCK_INCOMPLETE
+  - <<: *base_identity
+    id: MCS-AWS-IAM-001
+    title: Root account has active access keys
+    description: The AWS root identity has a persistent programmatic credential.
+    rationale: Root credentials bypass normal privilege boundaries and have account-wide impact.
+    severity: critical
+    severity_rubric_cell: data_exposure/requires_existing_access
+    provider_applicability: [aws]
+    requires_facts: [provider_specific.aws.root_access_keys_active]
+    predicate: provider_yes_is_fail
+    reason_code: ROOT_ACCESS_KEY_ACTIVE
+  - <<: *base_identity
+    id: MCS-AWS-IAM-002
+    title: Account password policy weaker than baseline
+    description: The AWS account password policy does not meet the project baseline.
+    rationale: Weak password controls increase the value of guessing and reused credentials.
+    severity: medium
+    severity_rubric_cell: privilege_escalation/weakens_defence_only
+    provider_applicability: [aws]
+    requires_facts: [provider_specific.aws.password_policy_strong]
+    predicate: provider_no_is_fail
+    reason_code: PASSWORD_POLICY_WEAK
+  - <<: *base_logging
+    id: MCS-AWS-CT-001
+    title: Trail is not multi-region or lacks log file validation
+    description: An AWS CloudTrail trail lacks broad regional coverage or validation.
+    rationale: Coverage and integrity checks make audit evidence more complete and trustworthy.
+    severity: medium
+    severity_rubric_cell: loss_of_detection/weakens_defence_only
+    provider_applicability: [aws]
+    requires_facts: [provider_specific.aws.validation_enabled]
+    predicate: provider_no_is_fail
+    reason_code: CLOUDTRAIL_VALIDATION_DISABLED
+  - <<: *base_storage_public_read
+    id: MCS-AZ-STOR-001
+    title: Storage account permits shared key authorization
+    description: The Azure storage account accepts long-lived shared key authorization.
+    rationale: Identity-based authorization provides stronger lifecycle and audit controls.
+    severity: medium
+    severity_rubric_cell: privilege_escalation/weakens_defence_only
+    provider_applicability: [azure]
+    requires_facts: [provider_specific.azure.allow_shared_key_access]
+    predicate: provider_yes_is_fail
+    reason_code: SHARED_KEY_AUTH_ALLOWED
+  - <<: *base_kms
+    id: MCS-AZ-KV-001
+    title: Key Vault soft delete not enabled
+    description: Deleted vault objects cannot be recovered during a retention window.
+    rationale: Soft deletion limits damage from accidental or malicious deletion.
+    severity: high
+    severity_rubric_cell: data_exposure/requires_existing_access
+    provider_applicability: [azure]
+    requires_facts: [provider_specific.azure.soft_delete_enabled]
+    predicate: provider_no_is_fail
+    reason_code: SOFT_DELETE_DISABLED
+  - <<: *base_kms
+    id: MCS-AZ-KV-002
+    title: Key Vault purge protection not enabled
+    description: Deleted vault objects can be permanently purged before their retention period ends.
+    rationale: Purge protection adds resistance to destructive actions using compromised privilege.
+    provider_applicability: [azure]
+    requires_facts: [provider_specific.azure.purge_protection_enabled]
+    predicate: provider_no_is_fail
+    reason_code: PURGE_PROTECTION_DISABLED
+  - <<: *base_storage_public_read
+    id: MCS-GCP-STOR-001
+    title: Uniform bucket-level access not enabled
+    description: The GCP bucket still permits object ACL authorization alongside IAM.
+    rationale: A single authorization model is easier to audit and less prone to conflicting grants.
+    severity: medium
+    severity_rubric_cell: privilege_escalation/weakens_defence_only
+    provider_applicability: [gcp]
+    requires_facts: [provider_specific.gcp.uniform_bucket_level_access]
+    predicate: provider_no_is_fail
+    reason_code: UNIFORM_ACCESS_DISABLED
+  - <<: *base_storage_public_read
+    id: MCS-GCP-STOR-002
+    title: Public access prevention not enforced
+    description: The GCP bucket does not enforce its public access prevention control.
+    rationale: Public access prevention blocks future public grants in addition to current ones.
+    severity: high
+    severity_rubric_cell: data_exposure/weakens_defence_only
+    provider_applicability: [gcp]
+    requires_facts: [provider_specific.gcp.public_access_prevention]
+    predicate: provider_no_is_fail
+    reason_code: PUBLIC_ACCESS_PREVENTION_DISABLED
+  - <<: *base_identity
+    id: MCS-IBM-IAM-001
+    title: Account-level multi-factor authentication not enforced
+    description: The IBM Cloud account does not require multi-factor authentication for interactive users.
+    rationale: Account enforcement prevents individual users from silently omitting a second factor.
+    provider_applicability: [ibm]
+    resource_type_applicability: [account.scope]
+    requires_facts: [provider_specific.ibm.account_mfa_enforced]
+    predicate: provider_no_is_fail
+    reason_code: ACCOUNT_MFA_NOT_ENFORCED
