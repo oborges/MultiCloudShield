@@ -39,4 +39,5 @@ Statuses: `proposed`, `accepted`, `superseded by ADR-NNNN`, `deprecated`.
 | [0024](0024-compliance-mapping-policy.md) | Identifiers only, original prose | accepted | Compliance mappings |
 | [0025](0025-stateless-local-scan-mode.md) | Database-free local scan mode | accepted | CI/CD scanning path |
 | [0026](0026-internal-postgresql-job-queue.md) | Internal leased PostgreSQL queue | accepted | Queue implementation |
-| [0027](0027-supported-frontend-and-test-tooling.md) | Supported frontend and HTTP test tooling | accepted | Available dependency baselines |
+| [0027](0027-supported-frontend-and-test-tooling.md) | Supported frontend and HTTP test tooling | superseded by 0028 | Available dependency baselines |
+| [0028](0028-vite-8-toolchain.md) | Vite 8 frontend toolchain | accepted | Compatible Vite, React plugin, Vitest, and TypeScript lines |

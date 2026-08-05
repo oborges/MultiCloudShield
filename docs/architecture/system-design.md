@@ -123,9 +123,9 @@ quirks, and gaps: [provider-adapters.md](provider-adapters.md) §4.
 
 ### Frontend
 
-React 19 · TypeScript 5.9 · Vite 7 · TanStack Query 5 · React Router 8.3 · design-token CSS ·
-`openapi-typescript` + `openapi-fetch` + `openapi-react-query` · Node 24 LTS.
-[ADR-0014](decisions/0014-frontend-stack.md).
+React 19 · TypeScript 5.9 · Vite 8 · Vitest 4 · TanStack Query 5 · React Router 8.3 ·
+design-token CSS · Node 24 in CI and Node 25 in the container build stage.
+[ADR-0028](decisions/0028-vite-8-toolchain.md).
 
 ### Tooling
 

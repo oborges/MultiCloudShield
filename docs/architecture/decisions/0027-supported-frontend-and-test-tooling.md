@@ -1,6 +1,6 @@
 # ADR-0027: Use supported dependency versions available to the locked build
 
-Status: accepted
+Status: superseded by ADR-0028
 Date: 2026-08-05
 Supersedes: ADR-0014 and the HTTP-client selection in ADR-0017
 
