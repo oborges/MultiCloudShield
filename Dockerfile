@@ -8,7 +8,7 @@ RUN npm run build
 
 FROM ghcr.io/astral-sh/uv:0.12.1 AS uv
 
-FROM python:3.13-slim AS python-build
+FROM python:3.14-slim AS python-build
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app
 COPY --from=uv /uv /usr/local/bin/uv
@@ -16,7 +16,7 @@ COPY pyproject.toml uv.lock README.md ./
 COPY src/ src/
 RUN uv sync --frozen --no-dev --extra all-providers
 
-FROM python:3.13-slim AS runtime
+FROM python:3.14-slim AS runtime
 ENV PATH=/app/.venv/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
